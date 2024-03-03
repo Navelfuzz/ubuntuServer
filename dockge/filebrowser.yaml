@@ -1,0 +1,16 @@
+version: "3"
+services:
+  filebrowser:
+    image: filebrowser/filebrowser:s6
+    container_name: filebrowser
+    volumes:
+      - /home/admin/:/srv #Change to match your directory
+      - /home/admin/public/docker/filebrowser/filebrowser.db:/database/filebrowser.db
+      - /home/admin/public/docker/filebrowser/settings.json:/config/settings.json #Change to match your directory
+    environment:
+      - PUID=1001
+      - PGID=1001
+    ports:
+      - 8080:80 #Change the port if needed
+    restart: unless-stopped
+networks: {}
