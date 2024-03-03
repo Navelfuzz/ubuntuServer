@@ -1,0 +1,115 @@
+---
+- hosts: local
+  become: true
+
+  tasks:
+    - name: Install aptitude
+      apt:
+        name: aptitude
+        state: latest
+        update_cache: true
+
+    - name: Install required system packages
+      apt:
+        pkg:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - software-properties-common
+          - python3-pip
+          - virtualenv
+          - python3-setuptools
+        state: latest
+        update_cache: true
+
+    - name: Add Docker GPG apt Key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Add Docker Repository
+      apt_repository:
+        repo: deb https://download.docker.com/linux/ubuntu jammy stable
+        state: present
+
+    - name: Update apt and install docker-ce
+      apt:
+        name: docker-ce
+        state: latest
+        update_cache: true
+
+    - name: Install Docker Module for Python
+      pip:
+        name: docker
+
+    - name: Install Docker Compose plugin
+      apt:
+        name: docker-compose-plugin
+        state: latest
+        update_cache: true
+
+    - name: Create Docker group
+      group:
+        name: docker
+        state: present
+
+    - name: Add current user to Docker group
+      user:
+        name: "{{ ansible_env.SUDO_USER }}"
+        groups: docker
+        append: yes
+
+    - name: Enable and start docker service
+      systemd:
+        name: docker.service
+        enabled: yes
+        state: started
+
+    - name: Enable and start containerd service
+      systemd:
+        name: containerd.service
+        enabled: yes
+        state: started
+
+    - name: Download ufw-docker script
+      get_url:
+        url: https://github.com/chaifeng/ufw-docker/raw/master/ufw-docker
+        dest: /usr/local/bin/ufw-docker
+        mode: '0755'
+
+    - name: Install ufw-docker to modify after.rules
+      command: ufw-docker install
+
+    - name: Install neofetch
+      apt:
+        name: neofetch
+        state: latest
+        update_cache: true
+
+    - name: Create necessary directories for Docker and Dockge
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: root
+        group: docker
+        mode: '0755'
+      loop:
+        - /srv/docker
+        - /srv/dockge
+        - /srv/dockge/data
+        - /opt/stacks
+
+    - name: Deploy Dockge container
+      community.docker.docker_container:
+        name: dockge
+        image: louislam/dockge:1
+        restart_policy: always
+        ports:
+          - "5001:5001"
+        volumes:
+          - /var/run/docker.sock:/var/run/docker.sock
+          - /srv/dockge/data:/app/data  # Ensure this directory exists or adjust accordingly
+          - /opt/stacks:/opt/stacks  # Ensure this directory exists or adjust accordingly
+        env:
+          DOCKGE_STACKS_DIR: "/opt/stacks"
+        state: started
