@@ -226,3 +226,9 @@ localhost ansible_connection=local
           DOCKGE_STACKS_DIR: "/opt/stacks"
         state: started
 ```
+### Dockge
+
+All contents are saved within the `/dockge` directory and the dockge container itself is created within the ansible playbook above.
+
+--- 
+
